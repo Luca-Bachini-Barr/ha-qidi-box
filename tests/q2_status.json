@@ -1,0 +1,173 @@
+{
+ "result": {
+  "status": {
+   "box_extras": {
+    "last_load_slot": "slot16",
+    "loaded_slot": "slot16",
+    "is_tool_change": 0,
+    "boxes": [
+     {
+      "aht20_humidity": 51,
+      "aht20_temp": 21.06,
+      "box_target_temp": 0.0,
+      "box_inserted_0": 0,
+      "box_inserted_1": 0,
+      "box_inserted_2": 1,
+      "box_inserted_3": 1,
+      "filament_inserted_0": 0,
+      "filament_inserted_1": 0,
+      "filament_inserted_2": 0,
+      "filament_inserted_3": 0,
+      "is_online": 1,
+      "dry_state": 0,
+      "end_time": 0,
+      "filament_info": [
+       {
+        "index": 0,
+        "filament_id": "QFA90",
+        "info_from_rfid": 0,
+        "read_rfid_state": 0,
+        "vendor_str": "Generic",
+        "filament_str": "PLA",
+        "filament_type": "PLA",
+        "color_rgb_str": [
+         "#F28636"
+        ],
+        "filament_per": 100,
+        "min_temp": 190,
+        "max_temp": 240,
+        "box_min_temp": 0,
+        "box_max_temp": 0
+       },
+       {
+        "index": 1,
+        "filament_id": "QFA00",
+        "info_from_rfid": 0,
+        "read_rfid_state": 0,
+        "vendor_str": "QIDI",
+        "filament_str": "PLA Basic",
+        "filament_type": "PLA",
+        "color_rgb_str": [
+         "#FAFAFA"
+        ],
+        "filament_per": 100,
+        "min_temp": 190,
+        "max_temp": 240,
+        "box_min_temp": 0,
+        "box_max_temp": 0
+       },
+       {
+        "index": 2,
+        "filament_id": "QFA00",
+        "info_from_rfid": 0,
+        "read_rfid_state": 0,
+        "vendor_str": "QIDI",
+        "filament_str": "PLA Basic",
+        "filament_type": "PLA",
+        "color_rgb_str": [
+         "#060606"
+        ],
+        "filament_per": 100,
+        "min_temp": 190,
+        "max_temp": 240,
+        "box_min_temp": 0,
+        "box_max_temp": 0
+       },
+       {
+        "index": 3,
+        "filament_id": "QFA00",
+        "info_from_rfid": 0,
+        "read_rfid_state": 0,
+        "vendor_str": "QIDI",
+        "filament_str": "PLA Basic",
+        "filament_type": "PLA",
+        "color_rgb_str": [
+         "#060606"
+        ],
+        "filament_per": 100,
+        "min_temp": 190,
+        "max_temp": 240,
+        "box_min_temp": 0,
+        "box_max_temp": 0
+       }
+      ]
+     }
+    ],
+    "auto_refill": [
+     {
+      "color": "#060606",
+      "type": "PLA Basic",
+      "slot": [
+       "1C",
+       "1D"
+      ]
+     }
+    ]
+   },
+   "save_variables": {
+    "variables": {
+     "box_count": 1,
+     "color_slot0": [
+      "F28636"
+     ],
+     "color_slot1": 3,
+     "color_slot2": [
+      "060606"
+     ],
+     "color_slot3": [
+      "060606"
+     ],
+     "enable_box": 1,
+     "filament_slot0": "QFA90",
+     "filament_slot1": 7,
+     "filament_slot2": "QFA00",
+     "filament_slot3": "QFA00",
+     "slot0": 0,
+     "slot1": 0,
+     "slot2": 1,
+     "slot3": 1,
+     "vendor_slot0": 0,
+     "vendor_slot1": 1,
+     "vendor_slot2": 1,
+     "vendor_slot3": 0
+    }
+   },
+   "multi_color_controller": {
+    "task": {
+     "flow_id": null,
+     "current_queue": [],
+     "current_step": "",
+     "is_paused": false
+    },
+    "operation": {
+     "box_button_state": 0,
+     "operate_state": 0,
+     "active_slot": "slot16"
+    },
+    "box_warning_info": []
+   },
+   "box_stepper slot0": {
+    "runout_button": 1,
+    "rfid_state": 0
+   },
+   "box_stepper slot1": {
+    "runout_button": 1,
+    "rfid_state": 0
+   },
+   "box_stepper slot2": {
+    "runout_button": 0,
+    "rfid_state": 0
+   },
+   "box_stepper slot3": {
+    "runout_button": 0,
+    "rfid_state": 0
+   },
+   "heater_generic heater_box1": {
+    "temperature": 21.06,
+    "target": 0.0,
+    "power": 0.0
+   }
+  },
+  "eventtime": 5081.562378839
+ }
+}

@@ -1,0 +1,64 @@
+load_filament: &slot_action
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: moonraker
+    slot:
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+unload_filament: *slot_action
+eject_filament: *slot_action
+set_slot_filament:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: moonraker
+    slot:
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+    color:
+      required: true
+      example: "060606"
+      selector:
+        text:
+    vendor:
+      required: true
+      example: QIDI
+      selector:
+        text:
+    filament:
+      required: true
+      example: PLA Basic
+      selector:
+        text:
+send_gcode:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: moonraker
+    gcode:
+      required: true
+      example: G28
+      selector:
+        text:
+          multiline: true
+    wait:
+      default: true
+      selector:
+        boolean:

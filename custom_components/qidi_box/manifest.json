@@ -1,0 +1,13 @@
+{
+  "domain": "qidi_box",
+  "name": "QIDI Box for Moonraker",
+  "after_dependencies": ["moonraker"],
+  "codeowners": ["@Luca-Bachini-Barr"],
+  "config_flow": true,
+  "documentation": "https://github.com/Luca-Bachini-Barr/ha-qidi-box",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Luca-Bachini-Barr/ha-qidi-box/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

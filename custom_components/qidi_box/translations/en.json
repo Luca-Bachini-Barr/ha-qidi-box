@@ -1,0 +1,76 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a QIDI Box",
+        "description": "Choose the printer the QIDI Box is attached to. The printer must already be set up with the Moonraker integration; the Box's entities join that printer's device.",
+        "data": { "moonraker_entry_id": "Printer" }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the printer's Moonraker. Is the printer on?",
+      "no_box": "This printer does not report a QIDI Box.",
+      "printer_not_loaded": "The Moonraker integration has not finished loading this printer yet. Try again when it is online.",
+      "unknown_printer": "That printer no longer exists."
+    },
+    "abort": {
+      "already_configured": "This printer's Box is already set up.",
+      "no_printers": "No printer without a Box entry found. Set the printer up with the Moonraker integration first."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "QIDI Box options",
+        "data": { "polling_rate": "Polling interval while idle" },
+        "data_description": { "polling_rate": "During a filament change, and for 30 s after a command, the Box is polled every 2 s." }
+      }
+    }
+  },
+  "services": {
+    "load_filament": {
+      "name": "Load filament",
+      "description": "Load the filament of a Box slot into the toolhead (heats, cuts, unloads what is loaded, loads; about 2.5 minutes). Returns once the printer has accepted the command.",
+      "fields": {
+        "device_id": { "name": "Printer", "description": "The printer with the Box." },
+        "slot": { "name": "Slot", "description": "Slot number: 1-4 on Box 1 (1A-1D), 5-8 on Box 2 …" }
+      }
+    },
+    "unload_filament": {
+      "name": "Unload filament",
+      "description": "Unload the filament of a Box slot from the toolhead.",
+      "fields": {
+        "device_id": { "name": "Printer", "description": "The printer with the Box." },
+        "slot": { "name": "Slot", "description": "Slot number: 1-4 on Box 1 (1A-1D), 5-8 on Box 2 …" }
+      }
+    },
+    "eject_filament": {
+      "name": "Eject filament",
+      "description": "Push the filament of a Box slot back out of the Box.",
+      "fields": {
+        "device_id": { "name": "Printer", "description": "The printer with the Box." },
+        "slot": { "name": "Slot", "description": "Slot number: 1-4 on Box 1 (1A-1D), 5-8 on Box 2 …" }
+      }
+    },
+    "set_slot_filament": {
+      "name": "Set slot filament",
+      "description": "Tell the Box which filament is in a slot (as on the touchscreen).",
+      "fields": {
+        "device_id": { "name": "Printer", "description": "The printer with the Box." },
+        "slot": { "name": "Slot", "description": "Slot number: 1-4 on Box 1 (1A-1D), 5-8 on Box 2 …" },
+        "color": { "name": "Colour", "description": "Hex colour, e.g. 060606." },
+        "vendor": { "name": "Vendor", "description": "Vendor name from the printer's filament list, e.g. QIDI or Generic." },
+        "filament": { "name": "Filament", "description": "Filament NAME from the printer's list, e.g. PLA Basic (not the id)." }
+      }
+    },
+    "send_gcode": {
+      "name": "Send G-code",
+      "description": "Run G-code on the printer, reporting Klipper's error if it fails.",
+      "fields": {
+        "device_id": { "name": "Printer", "description": "The printer with the Box." },
+        "gcode": { "name": "G-code", "description": "One command, several lines, or a list." },
+        "wait": { "name": "Wait", "description": "Wait until the command finishes. Turn off for long commands: the action then returns after a few seconds unless Klipper rejected it, and later errors are logged." }
+      }
+    }
+  }
+}
