@@ -28,5 +28,13 @@ class QidiBoxEntity(CoordinatorEntity[QidiBoxCoordinator]):
 
     @property
     def available(self) -> bool:
-        """Return True while the printer answers."""
-        return super().available and self.coordinator.online
+        """Return True while the printer answers and reports its Box.
+
+        Without the Box (not powered yet, or still starting) ``save_variables``
+        still holds the last filaments, which must not look like loaded spools.
+        """
+        return (
+            super().available
+            and self.coordinator.online
+            and bool(self.coordinator.status.get("box_extras"))
+        )

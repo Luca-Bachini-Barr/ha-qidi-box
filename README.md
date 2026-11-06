@@ -34,7 +34,7 @@ These are the commands the printer's touchscreen sends. A load/unload/eject runs
 
 ## Polling
 
-The Box is polled every 10 s (configurable), every 2 s while a filament change runs and for 30 s after a command. While the printer is switched off the entities are unavailable and nothing is logged.
+The Box is polled every 10 s (configurable), every 2 s while a filament change runs and for 30 s after a command. While the printer is switched off, or is on without its Box, the entities are unavailable and nothing is logged.
 
 ## Installation
 
