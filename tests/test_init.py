@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import AsyncMock
 
+import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
@@ -96,6 +97,39 @@ async def test_printer_off_and_back(
     assert hass.states.get(SLOT_3).state == STATE_UNAVAILABLE
 
     client.query.side_effect = None
+    client.query.return_value = q2_status()
+    freezer.tick(timedelta(seconds=11))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(SLOT_3).state == "PLA Basic"
+
+
+@pytest.mark.parametrize("missing", [{}, {"box_extras": None}])
+async def test_box_offline_and_back(
+    hass: HomeAssistant,
+    box_entry: MockConfigEntry,
+    client: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+    missing: dict[str, None],
+) -> None:
+    """A printer up without its Box must not show saved filaments as loaded."""
+    await setup_box(hass, box_entry)
+    client.query.return_value = {
+        "save_variables": q2_status()["save_variables"],
+        **missing,
+    }
+    freezer.tick(timedelta(seconds=11))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    for entity_id in (
+        SLOT_3,
+        "binary_sensor.q2_box_1_drying",
+        "number.q2_heater_box1_target",
+        "sensor.q2_box_filament_change",
+        "sensor.q2_box_warnings",
+    ):
+        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE, entity_id
+
     client.query.return_value = q2_status()
     freezer.tick(timedelta(seconds=11))
     async_fire_time_changed(hass)
