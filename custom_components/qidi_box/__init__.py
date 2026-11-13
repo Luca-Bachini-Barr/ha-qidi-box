@@ -69,6 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: QidiBoxConfigEntry) -> b
     moonraker_id = entry.data[CONF_MOONRAKER_ENTRY_ID]
     moonraker_entry = hass.config_entries.async_get_entry(moonraker_id)
     if moonraker_entry is None or moonraker_entry.domain != MOONRAKER_DOMAIN:
+        _async_stop_waiting(hass, entry.entry_id)
         raise ConfigEntryError(
             "The Moonraker printer this Box belongs to was removed; "
             "delete this entry and add the Box again"
@@ -115,8 +116,9 @@ def _async_retry_when_loaded(
 
     Setup retries back off to several minutes, so while the printer is off
     the Box would otherwise stay unavailable long after the printer is back.
-    The listener lives outside the Box entry, because a failed setup runs the
-    entry's unload callbacks.
+    The listeners live outside the Box entry, because a failed setup runs the
+    entry's unload callbacks. They are removed when the Moonraker entry loads
+    or the Box stops retrying (unloaded, disabled, removed or failed).
     """
     waiting = hass.data.setdefault(DOMAIN, {}).setdefault(_WAITING, {})
     if entry.entry_id in waiting:
@@ -130,16 +132,26 @@ def _async_retry_when_loaded(
         if entry.state is ConfigEntryState.SETUP_RETRY:
             hass.config_entries.async_schedule_reload(entry.entry_id)
 
-    waiting[entry.entry_id] = moonraker_entry.async_on_state_change(
-        _moonraker_state_changed
+    @callback
+    def _box_state_changed() -> None:
+        if entry.state not in (
+            ConfigEntryState.SETUP_RETRY,
+            ConfigEntryState.SETUP_IN_PROGRESS,
+        ):
+            _async_stop_waiting(hass, entry.entry_id)
+
+    removers = (
+        moonraker_entry.async_on_state_change(_moonraker_state_changed),
+        entry.async_on_state_change(_box_state_changed),
     )
+    waiting[entry.entry_id] = removers
 
 
 @callback
 def _async_stop_waiting(hass: HomeAssistant, entry_id: str) -> None:
-    """Remove the Moonraker state listener of a Box entry, if any."""
-    remove = hass.data.get(DOMAIN, {}).get(_WAITING, {}).pop(entry_id, None)
-    if remove is not None:
+    """Remove the state listeners of a waiting Box entry, if any."""
+    removers = hass.data.get(DOMAIN, {}).get(_WAITING, {}).pop(entry_id, ())
+    for remove in removers:
         # The listener may be running: Home Assistant iterates the listener
         # list, so remove it after the current callbacks.
         hass.loop.call_soon(remove)

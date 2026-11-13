@@ -192,15 +192,19 @@ async def test_retries_as_soon_as_moonraker_loads(
     box_entry: MockConfigEntry,
     moonraker_entry: MockConfigEntry,
     client: AsyncMock,
+    freezer: FrozenDateTimeFactory,
 ) -> None:
     """The Box sets up when its Moonraker entry loads, not after the backoff."""
     moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
     await hass.config_entries.async_setup(box_entry.entry_id)
     assert box_entry.state is ConfigEntryState.SETUP_RETRY
-    # A second failed attempt doesn't add a second listener.
-    await hass.config_entries.async_reload(box_entry.entry_id)
+    # Home Assistant's own retry doesn't add a second set of listeners.
+    freezer.tick(timedelta(seconds=10))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
     assert box_entry.state is ConfigEntryState.SETUP_RETRY
     assert len(hass.data[DOMAIN][_WAITING]) == 1
+    assert len(moonraker_entry._on_state_change) == 1
 
     # Other state changes of the Moonraker entry don't trigger a retry.
     moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
@@ -212,24 +216,47 @@ async def test_retries_as_soon_as_moonraker_loads(
     assert box_entry.state is ConfigEntryState.LOADED
     assert hass.data[DOMAIN][_WAITING] == {}
     assert not moonraker_entry._on_state_change
+    assert not box_entry._on_state_change
 
 
-async def test_no_retry_once_the_box_stopped_retrying(
+async def test_unloaded_box_stops_waiting(
     hass: HomeAssistant,
     box_entry: MockConfigEntry,
     moonraker_entry: MockConfigEntry,
     client: AsyncMock,
 ) -> None:
-    """A Box entry that was unloaded meanwhile isn't set up again."""
+    """Unloading a waiting Box removes its listeners and it isn't set up later."""
     moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
     await hass.config_entries.async_setup(box_entry.entry_id)
     await hass.config_entries.async_unload(box_entry.entry_id)
+    await hass.async_block_till_done()
     assert box_entry.state is ConfigEntryState.NOT_LOADED
+    assert hass.data[DOMAIN][_WAITING] == {}
+    assert not moonraker_entry._on_state_change
+    assert not box_entry._on_state_change
 
     moonraker_entry.mock_state(hass, ConfigEntryState.LOADED)
     await hass.async_block_till_done()
     assert box_entry.state is ConfigEntryState.NOT_LOADED
+
+
+async def test_moonraker_removed_while_waiting(
+    hass: HomeAssistant,
+    box_entry: MockConfigEntry,
+    moonraker_entry: MockConfigEntry,
+    client: AsyncMock,
+) -> None:
+    """If the Moonraker entry is removed while the Box waits, the wait ends."""
+    moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+    await hass.config_entries.async_setup(box_entry.entry_id)
+    moonraker_entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+    await hass.config_entries.async_remove(moonraker_entry.entry_id)
+    await hass.config_entries.async_reload(box_entry.entry_id)
+    await hass.async_block_till_done()
+    assert box_entry.state is ConfigEntryState.SETUP_ERROR
     assert hass.data[DOMAIN][_WAITING] == {}
+    assert not moonraker_entry._on_state_change
+    assert not box_entry._on_state_change
 
 
 async def test_removed_box_stops_waiting(
@@ -245,6 +272,7 @@ async def test_removed_box_stops_waiting(
     await hass.async_block_till_done()
     assert hass.data[DOMAIN][_WAITING] == {}
     assert not moonraker_entry._on_state_change
+    assert not box_entry._on_state_change
 
 
 async def test_waits_for_device(
