@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
@@ -207,8 +207,10 @@ async def test_retries_as_soon_as_moonraker_loads(
     assert len(moonraker_entry._on_state_change) == 1
 
     # Other state changes of the Moonraker entry don't trigger a retry.
-    moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
-    await hass.async_block_till_done()
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
+        moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
+        await hass.async_block_till_done()
+    reload.assert_not_called()
     assert box_entry.state is ConfigEntryState.SETUP_RETRY
 
     moonraker_entry.mock_state(hass, ConfigEntryState.LOADED)
@@ -240,18 +242,40 @@ async def test_unloaded_box_stops_waiting(
     assert box_entry.state is ConfigEntryState.NOT_LOADED
 
 
+async def test_moonraker_loads_while_box_sets_up(
+    hass: HomeAssistant,
+    box_entry: MockConfigEntry,
+    moonraker_entry: MockConfigEntry,
+    client: AsyncMock,
+) -> None:
+    """Moonraker loading during a Box setup attempt still retries at once."""
+    moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+    await hass.config_entries.async_setup(box_entry.entry_id)
+
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
+        box_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
+        moonraker_entry.mock_state(hass, ConfigEntryState.LOADED)
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+        assert len(hass.data[DOMAIN][_WAITING]) == 1
+
+        box_entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+        await hass.async_block_till_done()
+    reload.assert_called_once_with(box_entry.entry_id)
+    assert hass.data[DOMAIN][_WAITING] == {}
+
+
 async def test_moonraker_removed_while_waiting(
     hass: HomeAssistant,
     box_entry: MockConfigEntry,
     moonraker_entry: MockConfigEntry,
     client: AsyncMock,
 ) -> None:
-    """If the Moonraker entry is removed while the Box waits, the wait ends."""
+    """If the Moonraker entry is removed while the Box waits, it fails at once."""
     moonraker_entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
     await hass.config_entries.async_setup(box_entry.entry_id)
     moonraker_entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
     await hass.config_entries.async_remove(moonraker_entry.entry_id)
-    await hass.config_entries.async_reload(box_entry.entry_id)
     await hass.async_block_till_done()
     assert box_entry.state is ConfigEntryState.SETUP_ERROR
     assert hass.data[DOMAIN][_WAITING] == {}

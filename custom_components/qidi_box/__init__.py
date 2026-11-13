@@ -9,11 +9,17 @@ talks to Moonraker itself.
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.config_entries import (
+    SIGNAL_CONFIG_ENTRY_CHANGED,
+    ConfigEntry,
+    ConfigEntryChange,
+    ConfigEntryState,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
@@ -117,34 +123,50 @@ def _async_retry_when_loaded(
     Setup retries back off to several minutes, so while the printer is off
     the Box would otherwise stay unavailable long after the printer is back.
     The listeners live outside the Box entry, because a failed setup runs the
-    entry's unload callbacks. They are removed when the Moonraker entry loads
-    or the Box stops retrying (unloaded, disabled, removed or failed).
+    entry's unload callbacks. They are removed when the Box retries because
+    Moonraker loaded or was removed, or when the Box stops retrying.
     """
     waiting = hass.data.setdefault(DOMAIN, {}).setdefault(_WAITING, {})
     if entry.entry_id in waiting:
         return
 
     @callback
-    def _moonraker_state_changed() -> None:
-        if moonraker_entry.state is not ConfigEntryState.LOADED:
-            return
+    def _retry_now() -> None:
         _async_stop_waiting(hass, entry.entry_id)
-        if entry.state is ConfigEntryState.SETUP_RETRY:
-            hass.config_entries.async_schedule_reload(entry.entry_id)
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    @callback
+    def _moonraker_state_changed() -> None:
+        # While the Box sets up, wait for the result: if it ends in setup
+        # retry, _box_state_changed sees that Moonraker has loaded.
+        if (
+            moonraker_entry.state is ConfigEntryState.LOADED
+            and entry.state is ConfigEntryState.SETUP_RETRY
+        ):
+            _retry_now()
 
     @callback
     def _box_state_changed() -> None:
-        if entry.state not in (
-            ConfigEntryState.SETUP_RETRY,
-            ConfigEntryState.SETUP_IN_PROGRESS,
-        ):
+        if entry.state is ConfigEntryState.SETUP_RETRY:
+            if moonraker_entry.state is ConfigEntryState.LOADED:
+                _retry_now()
+        elif entry.state is not ConfigEntryState.SETUP_IN_PROGRESS:
             _async_stop_waiting(hass, entry.entry_id)
 
-    removers = (
+    @callback
+    def _entry_changed(change: ConfigEntryChange, changed: ConfigEntry) -> None:
+        # Removing an entry doesn't change its state after it is unloaded.
+        if (
+            change is ConfigEntryChange.REMOVED
+            and changed.entry_id == moonraker_entry.entry_id
+        ):
+            _retry_now()
+
+    waiting[entry.entry_id] = (
         moonraker_entry.async_on_state_change(_moonraker_state_changed),
         entry.async_on_state_change(_box_state_changed),
+        async_dispatcher_connect(hass, SIGNAL_CONFIG_ENTRY_CHANGED, _entry_changed),
     )
-    waiting[entry.entry_id] = removers
 
 
 @callback
