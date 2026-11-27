@@ -1,6 +1,7 @@
 """Decoding the Box's Klipper objects."""
 
 from custom_components.qidi_box.parse import (
+    box_filaments,
     box_heater,
     box_label,
     box_objects,
@@ -169,3 +170,22 @@ def test_warnings() -> None:
     status["multi_color_controller"]["box_warning_info"] = [{"code": 1}]
     assert box_warnings(status) == [{"code": 1}]
     assert box_warnings({}) == []
+
+
+def test_box_filaments() -> None:
+    """All slots in one place: names, types, colours and the active slot."""
+    status = q2_status()
+    summary = box_filaments(status, [0, 1, 2, 3])
+    assert summary["slot_count"] == 4
+    assert summary["names"][:2] == ["Empty", "Empty"]
+    assert summary["types"][:2] == ["Empty", "Empty"]
+    assert summary["colors"][:2] == ["", ""]
+    assert summary["types"][2] == "PLA"
+    assert summary["colors"][2] == "#060606"
+    assert summary["active_slot"] is None
+
+    status["box_extras"]["loaded_slot"] = "slot3"
+    assert box_filaments(status, [0, 1, 2, 3])["active_slot"] == 4
+
+    # a second Box adds its slots after the first's
+    assert box_filaments(status, [0, 1, 2, 3, 4, 5])["slot_count"] == 6

@@ -211,6 +211,40 @@ def slot_is_active(status: dict[str, Any], index: int) -> bool:
     return loaded == index + 1
 
 
+def box_filaments(status: dict[str, Any], indices: list[int]) -> dict[str, Any]:
+    """Return every slot of every Box in one place, for a card or a screen.
+
+    Lists in slot order (``indices`` are 0-based): ``names`` the filament (or
+    ``Empty``), ``types`` its type (PLA, PETG...; the name when the Box has no
+    type, ``Empty`` for an empty slot) and ``colors`` its ``#RRGGBB`` (``""``
+    when empty or unknown). ``active_slot`` is the 1-based slot that feeds the
+    toolhead, or None.
+    """
+    names: list[str] = []
+    types: list[str] = []
+    colors: list[str] = []
+    active: int | None = None
+    for index in indices:
+        name = slot_filament(status, index) or ""
+        attrs = slot_attributes(status, index)
+        empty = attrs["runout"]
+        names.append("Empty" if empty else name)
+        kind = attrs.get("filament_type")
+        types.append(
+            "Empty" if empty else kind if isinstance(kind, str) and kind else name
+        )
+        colors.append(attrs["color"] or "")
+        if attrs["active"] and active is None:
+            active = index + 1
+    return {
+        "active_slot": active,
+        "slot_count": len(indices),
+        "names": names,
+        "types": types,
+        "colors": colors,
+    }
+
+
 def slot_attributes(status: dict[str, Any], index: int) -> dict[str, Any]:
     """Return decoded slot details for use as entity attributes.
 

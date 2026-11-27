@@ -47,6 +47,7 @@ async def test_entities_join_printer_device(
         "binary_sensor.q2_box_1_drying",
         "number.q2_heater_box1_target",
         "sensor.q2_box_filament_change",
+        "sensor.q2_box_filaments",
         "sensor.q2_box_slot_1_filament",
         "sensor.q2_box_slot_2_filament",
         "sensor.q2_box_slot_3_filament",
@@ -64,6 +65,10 @@ async def test_entities_join_printer_device(
     assert hass.states.get("binary_sensor.q2_box_1_drying").state == "off"
     assert hass.states.get("sensor.q2_box_filament_change").state == "idle"
     assert hass.states.get("sensor.q2_box_warnings").state == "0"
+    filaments = hass.states.get("sensor.q2_box_filaments")
+    assert filaments.state == "0"
+    assert filaments.attributes["slot_count"] == 4
+    assert filaments.attributes["types"][2] == "PLA"
     assert hass.states.get("number.q2_heater_box1_target").state == "0.0"
 
     client.query.assert_awaited_with(

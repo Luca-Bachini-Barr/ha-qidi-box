@@ -9,6 +9,7 @@ It does not replace the Moonraker integration: it reads the printer's address fr
 | Entity | What it shows |
 |---|---|
 | `sensor.<printer>_box_slot_N_filament` | Filament name in slot N, or `Empty`. Attributes: `color` (`#RRGGBB`, left out for an empty slot), `active` (the slot feeding the toolhead), `vendor`, `filament_id`, `filament_type`, `min_temp`, `max_temp`, `slot_state`, `runout` |
+| `sensor.<printer>_box_filaments` | Every slot of every Box in one entity: the 1-based slot that feeds the toolhead, `0` for none (an external spool, or nothing loaded). Attributes: `active_slot` (or none), `slot_count`, and lists in slot order: `names` (or `Empty`), `types` (PLA, PETG...; `Empty` for an empty slot) and `colors` (`#RRGGBB`, `""` when empty or unknown). For a card or a screen that wants all slots at once, such as the [QIDI print](https://github.com/Luca-Bachini-Barr/tessera-qidi-print) Tessera plugin |
 | `binary_sensor.<printer>_box_N_drying` | On while box N dries filament |
 | `sensor.<printer>_box_filament_change` | `idle`, or the step of a running change (`starting`, `heat`, `cutting`, `unloading`, `loading`, `wipe`, `eject`, `paused`, `changing`). Attributes: `target_slot`, `loaded_slot` (1-based), `step`, `steps`, `flow_id`, `tool_change`, `warnings` |
 | `sensor.<printer>_box_warnings` | Number of Box warnings, the list in `warnings` |

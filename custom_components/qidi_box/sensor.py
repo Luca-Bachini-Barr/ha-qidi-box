@@ -12,6 +12,7 @@ from . import QidiBoxConfigEntry
 from .coordinator import QidiBoxCoordinator
 from .entity import QidiBoxEntity
 from .parse import (
+    box_filaments,
     box_warnings,
     filament_change_attributes,
     filament_change_state,
@@ -28,12 +29,12 @@ async def async_setup_entry(
 ) -> None:
     """Add a filament sensor per slot, and change/warning sensors on Box V2 firmware."""
     coordinator = entry.runtime_data
+    indices = sorted(i for i in map(slot_index, coordinator.objects) if i is not None)
     entities: list[SensorEntity] = [
-        SlotFilamentSensor(coordinator, index)
-        for index in sorted(
-            i for i in map(slot_index, coordinator.objects) if i is not None
-        )
+        SlotFilamentSensor(coordinator, index) for index in indices
     ]
+    if indices:
+        entities.append(BoxFilamentsSensor(coordinator, indices))
     if "multi_color_controller" in coordinator.objects:
         entities += [FilamentChangeSensor(coordinator), BoxWarningsSensor(coordinator)]
     async_add_entities(entities)
@@ -59,6 +60,33 @@ class SlotFilamentSensor(QidiBoxEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return colour, vendor, type, temperatures and whether it feeds the toolhead."""
         return slot_attributes(self.coordinator.status, self._index)
+
+
+class BoxFilamentsSensor(QidiBoxEntity, SensorEntity):
+    """Every slot of every Box in one entity: the active slot, and lists of names, types and colours.
+
+    Its state is the 1-based slot that feeds the toolhead, 0 when none does
+    (an external spool, or nothing loaded). For a card or a screen that wants
+    all slots at once without reading one entity per slot.
+    """
+
+    _attr_icon = "mdi:printer-3d-nozzle"
+    _attr_name = "Box Filaments"
+
+    def __init__(self, coordinator: QidiBoxCoordinator, indices: list[int]) -> None:
+        """Set up the sensor for the 0-based slot ``indices`` the printer reports."""
+        super().__init__(coordinator, "box_filaments")
+        self._indices = list(indices)
+
+    @property
+    def native_value(self) -> int:
+        """Return the slot that feeds the toolhead, 0 for none."""
+        return box_filaments(self.coordinator.status, self._indices)["active_slot"] or 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the active slot, the slot count and the per-slot lists."""
+        return box_filaments(self.coordinator.status, self._indices)
 
 
 class FilamentChangeSensor(QidiBoxEntity, SensorEntity):
