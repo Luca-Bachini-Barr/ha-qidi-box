@@ -177,7 +177,7 @@ def test_box_filaments() -> None:
     status = q2_status()
     summary = box_filaments(status, [0, 1, 2, 3])
     assert summary["slot_count"] == 4
-    assert summary["names"][:2] == ["Empty", "Empty"]
+    assert summary["names"] == ["Empty", "Empty", "PLA Basic", "PLA Basic"]
     assert summary["types"][:2] == ["Empty", "Empty"]
     assert summary["colors"][:2] == ["", ""]
     assert summary["types"][2] == "PLA"
@@ -187,5 +187,25 @@ def test_box_filaments() -> None:
     status["box_extras"]["loaded_slot"] = "slot3"
     assert box_filaments(status, [0, 1, 2, 3])["active_slot"] == 4
 
-    # a second Box adds its slots after the first's
-    assert box_filaments(status, [0, 1, 2, 3, 4, 5])["slot_count"] == 6
+    # loaded_slot wins over a stale save_variables marker, and slot16 is none
+    status["save_variables"]["variables"]["slot2"] = 2
+    assert box_filaments(status, [0, 1, 2, 3])["active_slot"] == 4
+    status["box_extras"]["loaded_slot"] = "slot16"
+    assert box_filaments(status, [0, 1, 2, 3])["active_slot"] is None
+
+    # a second Box adds its slots after the first's, in order
+    status = q2_status()
+    status["box_stepper slot4"] = {"runout_button": 1}
+    status["box_stepper slot5"] = {"runout_button": 0}
+    status["save_variables"]["variables"]["filament_slot5"] = 7
+    status["save_variables"]["variables"]["color_slot5"] = 18
+    summary = box_filaments(status, [0, 1, 2, 3, 4, 5])
+    assert summary["slot_count"] == 6
+    assert summary["names"][:4] == ["Empty", "Empty", "PLA Basic", "PLA Basic"]
+    assert summary["names"][4:] == ["Empty", "PLA Basic"]
+    assert summary["types"][4:] == ["Empty", "PLA Basic"]
+    assert summary["colors"][4:] == ["", "#FF362D"]
+
+    # a loaded slot the Box says nothing about is Unknown, not blank
+    status["box_stepper slot6"] = {"runout_button": 0}
+    assert box_filaments(status, [6])["names"] == ["Unknown"]

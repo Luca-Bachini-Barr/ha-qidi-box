@@ -223,9 +223,10 @@ def box_filaments(status: dict[str, Any], indices: list[int]) -> dict[str, Any]:
     names: list[str] = []
     types: list[str] = []
     colors: list[str] = []
-    active: int | None = None
+    marked: int | None = None
     for index in indices:
-        name = slot_filament(status, index) or ""
+        # A loaded slot whose filament the Box does not say is "Unknown", never "".
+        name = slot_filament(status, index) or "Unknown"
         attrs = slot_attributes(status, index)
         empty = attrs["runout"]
         names.append("Empty" if empty else name)
@@ -234,8 +235,23 @@ def box_filaments(status: dict[str, Any], indices: list[int]) -> dict[str, Any]:
             "Empty" if empty else kind if isinstance(kind, str) and kind else name
         )
         colors.append(attrs["color"] or "")
-        if attrs["active"] and active is None:
-            active = index + 1
+        if attrs["active"] and marked is None:
+            marked = index + 1
+    # ``box_extras.loaded_slot`` is what feeds the toolhead now (``slot16``: none);
+    # ``save_variables.slotN == 2`` can still mark an earlier slot, so it counts
+    # only on firmware without ``loaded_slot``.
+    extras = status.get("box_extras")
+    if isinstance(extras, dict) and "loaded_slot" in extras:
+        loaded = slot_number(extras.get("loaded_slot"))
+        active = (
+            loaded
+            if loaded is not None
+            and loaded - 1 in indices
+            and names[indices.index(loaded - 1)] != "Empty"
+            else None
+        )
+    else:
+        active = marked
     return {
         "active_slot": active,
         "slot_count": len(indices),
